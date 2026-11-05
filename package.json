@@ -1,0 +1,8 @@
+{
+  "name": "ebot",
+  "version": "1.0.0",
+  "main": "bot.js",
+  "scripts": { "start": "node bot.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "firebase": "9.23.0" }
+}
