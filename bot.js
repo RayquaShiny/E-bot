@@ -1,4 +1,4 @@
-/* E bot : assistant IA de Securechat (compte « ee »)
+/* E bot : assistant IA de Securechat (compte « ebot »)
    Répond aux messages privés qui lui sont adressés, et aux mentions « @E bot » dans les salons.
    Il se connecte comme un vrai compte : il déchiffre uniquement ce qui lui est destiné. */
 const { webcrypto } = require('crypto');
@@ -11,7 +11,7 @@ const { BOT_PASSWORD, GROUP_PASSPHRASE, AI_API_KEY } = process.env;
 // IA : n'importe quel service compatible « OpenAI » (par défaut Groq, gratuit et sans carte bancaire)
 const AI_BASE_URL = process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1';
 const MODEL = process.env.AI_MODEL || 'openai/gpt-oss-120b';
-const BOT_KEY = 'ee', BOT_NAME = 'E bot', EMAIL = BOT_KEY + '@securechat.app';
+const BOT_KEY = 'ebot', BOT_NAME = 'E bot', EMAIL = BOT_KEY + '@securechat.app';
 for (const [n, v] of Object.entries({ BOT_PASSWORD, AI_API_KEY })) if (!v) { console.error('Variable manquante : ' + n); process.exit(1); }
 
 firebase.initializeApp({
