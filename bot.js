@@ -37,7 +37,8 @@ async function aesEnc(key, bytes) {
 }
 async function aesDec(key, iv, c) { return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(c))); }
 const dmName = (a, b) => { const s = [a, b].sort(); return 'dm_' + s[0] + '_' + s[1]; };
-const nowTime = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+// Heure de Paris (le serveur GitHub est en UTC)
+const nowTime = () => new Date().toLocaleTimeString('fr-FR', { timeZone: process.env.TZ_NAME || 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false });
 
 let myPriv = null, groupKey = null;
 const dmKeys = {}, names = {}, history = {}, lastAsk = {};
