@@ -7,10 +7,12 @@ require('firebase/compat/auth');
 require('firebase/compat/database');
 
 const subtle = webcrypto.subtle;
-const { BOT_PASSWORD, GROUP_PASSPHRASE, ANTHROPIC_API_KEY } = process.env;
-const MODEL = process.env.MODEL || 'claude-sonnet-5-5';
+const { BOT_PASSWORD, GROUP_PASSPHRASE, AI_API_KEY } = process.env;
+// IA : n'importe quel service compatible « OpenAI » (par défaut Groq, gratuit et sans carte bancaire)
+const AI_BASE_URL = process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1';
+const MODEL = process.env.AI_MODEL || 'openai/gpt-oss-120b';
 const BOT_KEY = 'ee', BOT_NAME = 'E bot', EMAIL = BOT_KEY + '@securechat.app';
-for (const [n, v] of Object.entries({ BOT_PASSWORD, ANTHROPIC_API_KEY })) if (!v) { console.error('Variable manquante : ' + n); process.exit(1); }
+for (const [n, v] of Object.entries({ BOT_PASSWORD, AI_API_KEY })) if (!v) { console.error('Variable manquante : ' + n); process.exit(1); }
 
 firebase.initializeApp({
   apiKey: 'AIzaSyA1-DPVxv934DWaqMMlQsE4AGvPElb_Rl8',
@@ -91,22 +93,9 @@ async function askAI(chan, who, text) {
   h.push({ role: 'user', content: who + ' : ' + text });
   while (h.length > 12) h.shift();
   while (h.length && h[0].role !== 'user') h.shift();
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 700, system: SYSTEM, messages: h })
-    });
-    const j = await r.json();
-    const out = ((j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n') || '').trim();
-    if (!out) throw new Error(JSON.stringify(j.error || j).slice(0, 200));
-    h.push({ role: 'assistant', content: out });
-    return out.slice(0, 1800);
-  } catch (e) {
-    h.pop();
-    console.error('Erreur IA :', e.message);
-    return "Oups, je n'arrive pas à réfléchir pour le moment. Réessaie dans un instant.";
-  }
+  const r = await callAI(h);
+  if (r.ok) h.push({ role: 'assistant', content: r.text }); else h.pop();
+  return r.text;
 }
 
 async function reply(chan, key, text) {
@@ -138,18 +127,20 @@ async function onMessage(m) {
 // ===== Mode « une passe » (GitHub Actions) : répond aux messages restés sans réponse, puis s'arrête =====
 async function callAI(messages) {
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const body = { model: MODEL, max_tokens: 1500, messages: [{ role: 'system', content: SYSTEM }, ...messages] };
+    if (/gpt-oss/.test(MODEL)) body.reasoning_effort = 'low';
+    const r = await fetch(AI_BASE_URL.replace(/\/$/, '') + '/chat/completions', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 700, system: SYSTEM, messages })
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + AI_API_KEY },
+      body: JSON.stringify(body)
     });
     const j = await r.json();
-    const out = ((j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n') || '').trim();
+    const out = String((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '').trim();
     if (!out) throw new Error(JSON.stringify(j.error || j).slice(0, 200));
-    return out.slice(0, 1800);
+    return { ok: true, text: out.slice(0, 1800) };
   } catch (e) {
     console.error('Erreur IA :', e.message);
-    return "Oups, je n'arrive pas à réfléchir pour le moment. Réessaie dans un instant.";
+    return { ok: false, text: "Oups, je n'arrive pas à réfléchir pour le moment. Réessaie dans un instant." };
   }
 }
 async function contextOf(list, idx, chan, key) {
@@ -196,7 +187,7 @@ async function once() {
     if (n++ >= 5) break; // maximum 5 réponses par passage
     const ctx = await contextOf(list, g.idx, g.chan, g.key);
     const msgs = mergeTurns([...ctx, { role: 'user', content: g.who + ' : ' + g.texts.slice(-5).join('\n') }]);
-    await reply(g.chan, g.key, await callAI(msgs));
+    await reply(g.chan, g.key, (await callAI(msgs)).text);
     console.log('Réponse envoyée à ' + g.who + ' dans ' + g.chan);
   }
   if (!n) console.log('Rien à répondre.');
