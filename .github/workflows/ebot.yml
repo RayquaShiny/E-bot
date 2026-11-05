@@ -1,0 +1,23 @@
+name: E bot
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: ebot
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node bot.js --once
+        env:
+          BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          GROUP_PASSPHRASE: ${{ secrets.GROUP_PASSPHRASE }}
