@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14102b">
+<!-- ⚠️ À CONSERVER À CHAQUE MISE À JOUR : à chaque nouvelle version (chaque modification), la version affichée doit faire +1.
+     Changer le numéro aux 3 endroits, toujours identique : ce <meta name="moda-v">, `const VER` dans app.js, et `VERSION` dans sw.js. -->
+<meta name="moda-v" content="22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MoDa">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>MoDa – jeux entre potes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&family=DM+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#14102b;--card:#211a44;--ink:#f3f0ff;--mute:#9d94c9;--a:#ffd23f;--b:#3ee6c4;--r:14px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'DM Sans',sans-serif}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;margin:0}
+header{padding-top:max(14px,env(safe-area-inset-top))!important;flex-wrap:wrap;display:flex;align-items:center;gap:16px;padding:14px 24px;background:#0e0a22}
+.logo{font-size:30px;font-weight:800;letter-spacing:-1px}.logo b{color:var(--a)}
+#inst{background:var(--b);color:#06231d}
+#who{margin-left:auto;color:var(--mute)}
+#adm{display:flex;align-items:center;gap:8px;color:var(--mute);font-size:14px}
+#sw{width:51px;height:31px;padding:0;border-radius:16px;background:#3a3068;position:relative;transition:background .2s}
+#sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px #0006;transition:transform .2s}
+#sw[aria-checked=true]{background:#34c759}#sw[aria-checked=true]::after{transform:translateX(20px)}
+.stgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:12px}
+.stat{background:#2c2358;border-radius:12px;padding:14px}.stat b{display:block;font:800 36px 'Bricolage Grotesque';color:var(--a)}.stat span{color:var(--mute);font-size:14px}
+.chip{display:inline-block;background:#2c2358;border-radius:20px;padding:2px 12px;margin:3px 6px 3px 0}
+main{display:grid;grid-template-columns:1fr 280px;gap:20px;padding:20px 24px;max-width:1200px;margin:auto}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+section[hidden]{display:none}
+.panel{background:var(--card);border-radius:var(--r);padding:18px}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:9px 16px;background:var(--a);color:#241a00;cursor:pointer}
+button.alt{background:#3a3068;color:var(--ink)}button.mini{padding:2px 10px;font-size:13px}
+button:disabled{opacity:.4;cursor:default}button:focus-visible,input:focus-visible{outline:3px solid var(--b)}
+input{font:inherit;padding:9px 12px;border-radius:10px;border:2px solid #3a3068;background:#14102b;color:var(--ink);width:100%;margin:4px 0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.row input{flex:1;min-width:120px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:14px}
+.tile{aspect-ratio:1;border-radius:var(--r);display:flex;align-items:flex-end;padding:12px;font:800 20px 'Bricolage Grotesque';background:#2c2358;color:var(--mute)}
+.tile.surv{background:linear-gradient(135deg,#c0392b,#ff9f1c);color:#2b0a00;cursor:pointer}
+.tile.snake{background:linear-gradient(135deg,#0b8f78,var(--b));color:#06231d;cursor:pointer}
+.code{font:800 44px 'Bricolage Grotesque';letter-spacing:6px;color:var(--a)}
+.pl{display:flex;align-items:center;gap:10px;padding:6px 0}.sw{width:18px;height:18px;border-radius:5px}
+.dot{color:#4b4380;margin-right:4px}.dot.on{color:var(--b)}
+#friends>div,#reqs>div{padding:4px 0}
+canvas{touch-action:none;-webkit-user-select:none;user-select:none;width:100%;max-width:800px;border-radius:var(--r);display:block;background:#0e0a22}
+#pad{display:none;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(2,72px);gap:8px;justify-content:center;margin:14px auto;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#pad button{font-size:28px;padding:0;background:#3a3068;color:var(--ink)}
+@media(pointer:coarse){button:not(#sw):not(.eye):not(.mini){min-height:44px}button.mini{padding:8px 12px;min-height:40px}}
+@media(max-width:500px){header{padding:10px 14px}main{padding:14px 12px}.code{font-size:36px}}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--a);color:#241a00;padding:10px 18px;border-radius:10px;font-weight:600}
+#upd{display:flex;gap:10px;align-items:center;justify-content:space-between}
+#upd button{white-space:nowrap;flex-shrink:0}
+#upd[hidden],#iosHelp[hidden],#adm[hidden],#inst[hidden]{display:none}
+#toast:empty{display:none}
+[hidden]{display:none!important}
+#auth{max-width:460px;width:100%;margin:12px auto}
+.tabs{display:flex;background:#14102b;border-radius:12px;padding:4px;gap:4px;margin-bottom:18px}
+.tab{flex:1;background:none;color:var(--mute);padding:10px 8px}
+.tab[aria-selected=true]{background:#3a3068;color:var(--ink)}
+.sub{color:var(--mute);margin:4px 0 16px}
+.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;padding:12px 16px}
+.or{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:13px;margin:16px 0 4px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:#3a3068}
+label{display:block;font-size:14px;font-weight:600;color:var(--mute);margin-top:12px}
+input.err{border-color:#ff4d6d}
+.hint{font-size:13px;color:var(--mute)}.hint.good{color:var(--b)}
+.pw{position:relative}.pw input{padding-right:52px}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;padding:8px 10px;font-size:18px}
+#amsg{padding:10px 12px;border-radius:10px;margin:14px 0 4px;font-size:14px}
+#amsg.bad{background:#ff4d6d22;color:#ff9aae;border:1px solid #ff4d6d66}
+#amsg.ok{background:#3ee6c422;color:var(--b);border:1px solid #3ee6c466}
+.cta{width:100%;padding:13px;font-size:17px;margin-top:14px}
+.link{display:block;background:none;color:var(--b);margin:12px auto 0;padding:4px 8px;text-decoration:underline;font-weight:400}
+.tile{flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:2px}
+.tile small{font:500 13px 'DM Sans',sans-serif;opacity:.8}
+.tile.br{background:linear-gradient(135deg,#5b2bd6,#ff4d6d);color:#fff;cursor:pointer}
+.tile.sim{background:linear-gradient(135deg,#f7971e,#ffd200);color:#3a2300;cursor:pointer}
+.tile.tk{background:linear-gradient(135deg,#4b6b2a,#e08a1e);color:#fff;cursor:pointer}
+.tile.lab{background:linear-gradient(135deg,#1e6fd9,#7bdff2);color:#04202e;cursor:pointer}
+#pass2[hidden]{display:none}
+section:not([hidden]){animation:fade .28s ease backwards}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+#auth{transition:opacity .2s}#auth.busy{opacity:.6;pointer-events:none}
+#auth.busy h2::after{content:"";display:inline-block;width:16px;height:16px;margin-left:10px;border:3px solid var(--mute);border-top-color:var(--a);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+#boot{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .3s}
+#boot .logo{font-size:52px}#boot.off{opacity:0;pointer-events:none}
+.spinner{width:34px;height:34px;border:4px solid #3a3068;border-top-color:var(--a);border-radius:50%;animation:spin .8s linear infinite}
+#bootmsg{color:var(--mute);font-size:14px;min-height:21px}
+#net{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#ff4d6d;color:#fff;padding:6px 14px;border-radius:20px;font-weight:600;font-size:14px;z-index:40;animation:fade .25s}
+#net[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== iPhone / iPad : confort tactile ===== */
+html{-webkit-text-size-adjust:100%}
+body{touch-action:manipulation;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,.tile,.stat{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* marges de sécurité (encoche, coins arrondis) en paysage */
+header,main{padding-left:max(var(--px,24px),env(safe-area-inset-left));padding-right:max(var(--px,24px),env(safe-area-inset-right))}
+@media(max-width:500px){header{--px:14px}main{--px:12px}}
+#toast{bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;max-width:calc(100% - 24px);text-align:center}
+#gw{position:relative;max-width:800px}
+#ov{padding:0 8px}
+#gctl,#gexit,#tip,.stick{display:none}
+/* joysticks flottants (déplacés par transform : aucun recalcul de mise en page) */
+.stick{position:fixed;left:0;top:0;width:124px;height:124px;margin:-62px 0 0 -62px;border-radius:50%;border:2px solid #ffffff44;background:#ffffff14;pointer-events:none;z-index:15;will-change:transform}
+.stick.on{display:block}
+.stick .knob{position:absolute;left:38px;top:38px;width:48px;height:48px;border-radius:50%;background:#ffffffb0;will-change:transform}
+.stick.r{border-color:#ff4d6d99;background:#ff4d6d22}.stick.r .knob{background:#ff4d6dcc}
+#tip{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:86vw;text-align:center;background:#000a;color:#fff;padding:8px 14px;border-radius:12px;font-size:14px;pointer-events:none;z-index:14}
+
+/* Plein écran de jeu sur téléphone / tablette : plus d'en-tête, pas de défilement, le jeu occupe tout l'écran */
+body.gm{position:fixed;inset:0;width:100%;overflow:hidden;background:var(--bg);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.gm header,body.gm aside,body.gm #ver,body.gm #ghelp{display:none!important}
+body.gm main{display:block;padding:0;max-width:none;margin:0}
+body.gm #game{position:fixed;inset:0;z-index:10;background:var(--bg);touch-action:none;display:flex;flex-direction:column;align-items:center;padding-top:env(safe-area-inset-top)}
+/* le jeu garde son format 800×560 : il remplit la largeur (portrait) ou la hauteur (paysage) */
+body.gm #gw{flex:none;max-width:none;width:min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),calc((100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))*1.4286));
+  width:min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))*1.4286))}
+body.gm canvas{max-width:none;border-radius:0;background:#000}
+body.gm #score{margin:4px 12px;gap:2px 14px;font-size:13px;pointer-events:none;justify-content:center}
+body.gm #score:empty{display:none}
+body[data-g=br].gm #score{display:none}
+body.gm #gbar{margin:2px 0 6px;gap:10px;justify-content:center}
+body.gm #gctl,body.gm #gexit,body.gm #tip{display:block}
+body.gm #gctl,body.gm #gexit{display:inline-block}
+body.gm #gbar button{min-width:44px;opacity:.92}
+@media(orientation:landscape){
+ body.gm #game{justify-content:center}
+ body.gm #score{position:absolute;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));flex-direction:column;align-items:flex-start;margin:0;max-width:22vw;font-size:12px;background:#0007;padding:4px 8px;border-radius:8px}
+ body.gm #gbar{position:absolute;top:calc(6px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));margin:0}
+}
+/* croix directionnelle (option) : en bas à gauche, par-dessus le jeu */
+body.gm.padon #pad{display:grid;position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));grid-template-columns:repeat(3,62px);grid-template-rows:repeat(2,62px);margin:0;z-index:16;opacity:.9}
+body.gm.padon #pad button{background:#3a3068cc;border-radius:14px}
+
+/* ===== Mine Simulator (dans l'écran de jeu commun) ===== */
+#sbtns{display:none;position:absolute;right:8px;bottom:8px;gap:8px;z-index:6}
+body[data-g=sim] #sbtns{display:flex}
+body[data-g=sim] #pad,body[data-g=sim] #gctl{display:none!important}
+#sbtns button{font-size:16px;padding:8px 12px;min-width:44px}
+#smod{position:absolute;inset:6px;background:#14102bf2;border:2px solid #3a3068;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:auto;z-index:7;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.stabs{display:flex;gap:6px;flex-wrap:wrap}.stabs button{padding:6px 10px;font-size:14px}
+.smoney{font:800 17px 'Bricolage Grotesque';color:var(--a)}
+.sbody{display:flex;flex-direction:column;gap:8px}
+.scard{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#2c2358;border-radius:12px;padding:10px 12px;font-size:14px}
+.scard button{white-space:nowrap}.shatch{background:#3ee6c422;border:1px solid #3ee6c466;color:var(--b);border-radius:10px;padding:8px 10px;font-weight:600}
+#semo{position:absolute;right:8px;bottom:60px;display:flex;gap:6px;background:#14102bec;border-radius:12px;padding:6px;z-index:6}
+#semo button{font-size:22px;padding:4px 8px;background:#3a3068}
+
+/* ---- Thème noir-rouge néon (actif quand l'interrupteur Stats est sur ON) ---- */
+html.neon{--bg:#050204;--card:#12060a;--ink:#ffeef0;--mute:#ff8a9b;--a:#ff1f4b;--b:#ff4d6d}
+html,html.neon{background:var(--bg)}
+html.neon body{background:var(--bg)}
+html.neon header{margin-top:0}
+html.neon header{background:#0a0204;border-bottom:1px solid #ff1f4b;box-shadow:0 0 18px #ff1f4b88}
+html.neon .logo{text-shadow:0 0 10px #ff1f4b,0 0 24px #ff1f4b88}
+html.neon .logo b{color:#ff1f4b;text-shadow:0 0 8px #ff1f4b,0 0 22px #ff1f4b,0 0 40px #ff1f4bcc}
+html.neon .panel{border:1px solid #ff1f4b66;box-shadow:0 0 14px #ff1f4b44,inset 0 0 18px #ff1f4b14}
+html.neon .stat{background:#1a060c;border:1px solid #ff1f4b88;box-shadow:0 0 10px #ff1f4b55}
+html.neon .stat b,html.neon .code{color:#ff3b5c;text-shadow:0 0 8px #ff1f4b,0 0 20px #ff1f4b99}
+html.neon h1,html.neon h2,html.neon h3{text-shadow:0 0 8px #ff1f4b88}
+html.neon .chip{background:#1a060c;border:1px solid #ff1f4b77;box-shadow:0 0 6px #ff1f4b44}
+html.neon button{background:#ff1f4b;color:#fff;box-shadow:0 0 10px #ff1f4b,0 0 22px #ff1f4b66;text-shadow:0 0 4px #0008}
+html.neon button.alt,html.neon #pad button{background:#1a060c;color:var(--ink);border:1px solid #ff1f4b;box-shadow:0 0 8px #ff1f4b66}
+html.neon button:focus-visible,html.neon input:focus-visible{outline:3px solid #ff4d6d;box-shadow:0 0 14px #ff1f4b}
+html.neon input{background:#0a0204;border-color:#ff1f4b88;color:var(--ink)}
+html.neon .tabs{background:#0a0204;border:1px solid #ff1f4b55}
+html.neon .tile{background:#1a060c;border:1px solid #ff1f4b55}
+html.neon .dot{color:#5a1a28}html.neon .dot.on{color:#ff4d6d;text-shadow:0 0 6px #ff1f4b}
+html.neon canvas{box-shadow:0 0 18px #ff1f4b66}
+html.neon #sw{background:#2a0a12;box-shadow:0 0 8px #ff1f4b55}
+html.neon #sw[aria-checked=true]{background:#ff1f4b;box-shadow:0 0 12px #ff1f4b,0 0 26px #ff1f4b99}
+html.neon #toast{background:#ff1f4b;color:#fff;box-shadow:0 0 16px #ff1f4b}
+html.neon #semo{background:#0a0204ec;border:1px solid #ff1f4b88}
+html.neon #semo button{background:#1a060c}
+html.neon ::selection{background:#ff1f4b;color:#fff}
+
+/* ---- Menu stats + tuile Bientôt ---- */
+.sthead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sthead h2{margin:0}
+.live{display:inline-flex;align-items:center;gap:6px;color:var(--mute);font-size:13px}.live i{width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 8px #2ecc71;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.stsec{margin:18px 0 0;font-size:15px;color:var(--mute);font-weight:700}
+.stat .ic{display:block;font-size:20px;margin-bottom:2px}
+.bar{display:flex;align-items:center;gap:10px;margin-top:12px;color:var(--mute);font-size:13px}.bar>div{flex:1;height:8px;border-radius:6px;background:#2c2358;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--b),var(--a));transition:width .5s}
+.chip .on{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;margin-right:6px}
+.lrow,.nrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #ffffff14}.lrow:first-child,.nrow:first-child{border-top:0}
+.lrow .g{flex:1;font-weight:700}.lrow small,.nrow small{color:var(--mute);font-size:13px}
+.lrow code{font:800 15px 'Bricolage Grotesque';letter-spacing:2px;color:var(--a)}
+.badge{display:inline-block;font:800 11px 'DM Sans',sans-serif;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:#2ecc7133;color:#7dffb0}.badge.pl2{background:#ff9f1c33;color:#ffc766}
+.nrow .n{flex:1}.empty{color:var(--mute)}
+.tile.soon{background:repeating-linear-gradient(135deg,#2c2358 0 14px,#251d4c 14px 28px);color:#b9b2e8;cursor:default;position:relative;opacity:.9;border:2px dashed #4b4380}
+.tile.soon .badge{position:absolute;top:12px;left:12px;background:#ffd20033;color:#ffe066;font-size:12px}
+html.neon .stat .ic{filter:drop-shadow(0 0 6px #ff1f4b)}
+html.neon .live i{background:#ff1f4b;box-shadow:0 0 10px #ff1f4b}
+html.neon .bar>div{background:#2a0a12}html.neon .bar i{box-shadow:0 0 10px #ff1f4b}
+html.neon .lrow,html.neon .nrow{border-top-color:#ff1f4b33}
+html.neon .tile.soon{background:repeating-linear-gradient(135deg,#1a060c 0 14px,#12060a 14px 28px);color:#ff8a9b;border:2px dashed #ff1f4b;box-shadow:0 0 14px #ff1f4b55}
+html.neon .tile.soon .badge{background:#ff1f4b;color:#fff;box-shadow:0 0 10px #ff1f4b}
+
+/* ---- Onglets Stats / Admin ---- */
+.stabs{display:flex;gap:8px;margin-bottom:14px}.stabs button{flex:1;background:#2c2358;color:var(--mute);box-shadow:none}.stabs button.on{background:var(--a);color:#fff}
+.danger{background:#d63a3a!important;color:#fff}
+#stView .panel+.panel{margin-top:14px}
+.adl{border-top:1px solid #ffffff14;padding:10px 0}.adl:first-child{border-top:0}
+.adh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.adh .g{font-weight:700}.adh code{font:800 15px 'Bricolage Grotesque';letter-spacing:2px;color:var(--a)}.adh .sp{flex:1}
+.adp{margin:6px 0}.adp .chip{padding:2px 6px 2px 12px}.adp .chip button{background:none;box-shadow:none;color:#ff6b81;padding:0 6px;font-size:15px;min-width:0}
+html.neon .stabs button{background:#1a060c;border:1px solid #ff1f4b88;color:#ff8a9b}html.neon .stabs button.on{background:#ff1f4b;color:#fff;box-shadow:0 0 12px #ff1f4b}
+html.neon .adl{border-top-color:#ff1f4b33}
+</style></head><body>
+<div id="boot"><div class="logo">Mo<b>Da</b></div><div class="spinner"></div><div id="bootmsg"></div></div>
+<div id="net" hidden>🔌 Reconnexion…</div>
+<header><div class="logo">Mo<b>Da</b></div><div id="who"></div>
+<button id="inst" hidden>📲 Installer</button>
+<div id="adm" hidden><span>Stats</span><button id="sw" role="switch" aria-checked="false" aria-label="Afficher les statistiques à la place des jeux"></button></div><button class="alt" id="out" hidden>Déconnexion</button></header>
+<main>
+<div>
+ <section id="auth" class="panel">
+  <div class="tabs" role="tablist">
+   <button type="button" class="tab" id="tabLogin" role="tab" aria-selected="true">Connexion</button>
+   <button type="button" class="tab" id="tabSignup" role="tab" aria-selected="false">Créer un compte</button>
+  </div>
+  <h2 id="atitle">Content de te revoir 👋</h2>
+  <p class="sub" id="asub"></p>
+  <button type="button" class="gbtn" id="google"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuer avec Google</button>
+  <div class="or"><span>ou avec ton email</span></div>
+  <div id="fPseudo" hidden><label for="pseudo">Pseudo (visible par tes amis)</label>
+   <input id="pseudo" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="ex : Rayqua_42" autocomplete="nickname" maxlength="16">
+   <div class="hint" id="pseudoHint">3 à 16 lettres, chiffres ou _</div></div>
+  <div><label for="email" id="lblEmail">Email (ou pseudo owner)</label>
+   <input id="email" type="text" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="toi@exemple.com" autocomplete="username"></div>
+  <div><label for="pass">Mot de passe</label>
+   <div class="pw"><input id="pass" type="password" placeholder="Ton mot de passe" autocomplete="current-password"><button type="button" class="eye" id="eye" aria-label="Afficher le mot de passe">👁</button></div>
+   <div class="hint" id="passHint" hidden>6 caractères minimum</div></div>
+  <div id="pass2w" hidden><label for="pass2">Confirme ton code (première connexion)</label>
+   <input id="pass2" type="password" autocomplete="new-password"></div>
+  <div id="amsg" role="alert" hidden></div>
+  <button type="button" class="cta" id="login">Se connecter</button>
+  <button type="button" class="cta" id="signup" hidden>Créer mon compte</button>
+  <button type="button" class="link" id="forgot">Mot de passe oublié ?</button>
+ </section>
+ <section id="home" hidden>
+  <div class="panel"><h2>Jouer avec tes potes</h2>
+   <p class="sub">Choisis un jeu ci-dessous pour créer un lobby, puis invite tes amis. Ou rejoins un pote avec son code.</p>
+   <div class="row"><input id="joincode" placeholder="Code du lobby" maxlength="5" autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off" enterkeyhint="go" style="max-width:160px;text-transform:uppercase"><button class="alt" id="join">Rejoindre</button></div></div>
+  <div class="grid"><div class="tile snake" id="tsnake">Snake<small>1 à 8 joueurs</small></div><div class="tile surv" id="tsurv">Survie coop<small>1 à 8 joueurs</small></div><div class="tile br" id="tbr">Battle Royale<small>2 à 8 joueurs · dernier en vie</small></div><div class="tile lab" id="tlab">Évasion coop<small>1 à 8 joueurs · labyrinthe</small></div><div class="tile sim" id="tsim">Mine Simulator<small>1 à 8 joueurs · farme, améliore, renais</small></div><div class="tile tk" id="ttk">Tanks<small>2 à 8 joueurs · obus qui rebondissent</small></div></div>
+ </section>
+ <section id="stats" hidden>
+  <div class="stabs" role="tablist"><button type="button" id="tbStats" class="on" role="tab" aria-selected="true">📊 Stats</button><button type="button" id="tbAdm" role="tab" aria-selected="false">🛠️ Admin</button></div>
+  <div id="stView">
+  <div class="panel"><div class="sthead"><h2>Statistiques</h2><span class="live"><i></i><span id="stup">en direct</span></span></div>
+   <h3 class="stsec">👥 Comptes</h3><div class="stgrid" id="stgrid"></div>
+   <div class="bar" id="stbar" hidden><div><i id="stfill"></i></div><span id="stpct"></span></div>
+   <h3 class="stsec">🎮 Activité</h3><div class="stgrid" id="stgrid2"></div></div>
+  <div class="panel"><h3 id="onlh">En ligne maintenant</h3><div id="onl"></div></div>
+  <div class="panel"><h3>Lobbys et parties</h3><div id="stlob"></div></div>
+  <div class="panel"><h3>Derniers inscrits</h3><div id="stnew"></div></div>
+  </div>
+  <div id="admView" hidden>
+   <div class="panel"><div class="sthead"><h2>Admin</h2><span class="live"><i></i><span>owner</span></span></div>
+    <p class="sub">Les actions s'appliquent tout de suite pour tout le monde.</p>
+    <h3 class="stsec" id="adLobH">Lobbys</h3><div id="adLob"></div>
+    <div class="row"><button type="button" class="danger" id="adAll" hidden>Fermer tous les lobbys</button></div></div>
+   <div class="panel" style="margin-top:14px"><h3>Outils</h3>
+    <div class="row"><button type="button" class="alt" id="adReset">Remettre à zéro « parties jouées »</button></div></div>
+  </div>
+ </section>
+ <section id="lobby" class="panel" hidden>
+  <h2 id="ltitle">Lobby</h2><div class="code" id="lcode"></div>
+  <div id="players"></div>
+  <div class="row" id="opts"><button class="alt mini" id="oSp"></button><button class="alt mini" id="oWr"></button><button class="alt mini" id="oBo"></button></div>
+  <div class="hint" id="lneed" style="margin:8px 0"></div>
+  <div class="row"><button id="ready">Prêt</button><button id="start" hidden>Lancer la partie</button><button class="alt" id="leave">Quitter</button></div>
+  <p style="color:var(--mute)">Invite un ami avec le bouton « Inviter » de la liste à droite, ou donne-lui le code.</p>
+ </section>
+ <section id="game" hidden>
+  <div id="gw"><canvas id="cv" width="800" height="560"></canvas>
+  <div id="ov" style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;font:800 56px 'Bricolage Grotesque';text-shadow:0 2px 12px #000;text-align:center"></div>
+  <div id="sbtns"><button class="alt mini" id="sShop" aria-label="Boutique">🛒 Boutique</button><button class="alt mini" id="sEmo" aria-label="Emotes">😀</button></div><div id="semo" hidden></div><div id="smod" hidden></div></div>
+  <div id="pad"><span></span><button data-d="U" aria-label="Haut">▲</button><span></span><button data-d="L" aria-label="Gauche">◀</button><button data-d="D" aria-label="Bas">▼</button><button data-d="R" aria-label="Droite">▶</button></div>
+  <div id="score" class="row"></div>
+  <div class="row" id="gbar"><button class="alt mini" id="gctl" aria-label="Commandes"></button><button class="alt mini" id="mute" aria-label="Son"></button><button class="alt mini" id="gexit" aria-label="Quitter la partie">✕</button><span id="ghelp" style="color:var(--mute)"></span></div>
+  <div id="tip" hidden></div>
+  <div class="stick" id="sL"><i class="knob"></i></div><div class="stick r" id="sR"><i class="knob"></i></div>
+ </section>
+</div>
+<aside class="panel" id="side" hidden>
+ <h3>Amis</h3>
+ <div class="row"><input id="fname" placeholder="Pseudo de l'ami" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send"><button class="mini" id="fadd">Ajouter</button></div>
+ <div id="reqs"></div><div id="invs"></div><div id="friends"></div>
+</aside>
+</main>
+<p id="ver" style="text-align:center;color:var(--mute);font-size:12px;margin:0 0 16px"></p>
+<div id="iosHelp" class="panel" hidden style="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:20;max-width:420px;margin:auto">
+ <b>Installer MoDa sur iPhone</b>
+ <p style="margin:6px 0">Dans <b>Safari</b> : touche le bouton Partager <span aria-hidden="true">⬆️</span>, puis « Sur l’écran d’accueil ».</p>
+ <button class="alt" id="iosClose">Fermer</button>
+</div>
+<div id="upd" class="panel" hidden style="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;max-width:460px;margin:auto;padding:12px 14px;box-shadow:0 8px 30px #000a">
+ <span>🚀 Nouvelle version de MoDa disponible.</span><button id="updbtn">Mettre à jour</button>
+</div>
+<div id="toast" role="status"></div>
+<script>setTimeout(function(){var b=document.getElementById("boot");if(b)b.className="off"},8000)</script>
+<script type="module" src="app.js"></script>
+</body></html>
